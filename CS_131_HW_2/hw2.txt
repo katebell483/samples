@@ -1,0 +1,86 @@
+My work on this project can be broken up into three attempted strategies. The 
+first way I sought to tackle the problem was very direclty related the the hint 
+from the pervious homework two. I attempted to match each part of the the 
+fragment with a prefix, using the "or matcher" pattern as the framework which 
+would accept or reject derivations. I was able to successfully zip together the 
+prefix options with each element of the fragment, however, it soon becuase 
+clear that this would never match complex statements. For example, while I was 
+able to match ["9"; "+"; "9"], my program failed to parse 
+["9"; "+"; "(" + "9"; ")"]. Since it was looking at each element of the 
+fragment separately I was unable to handle these slightly more nuanced cases. 
+Furthermore, I had separated the construction of the derivation from the 
+project of matching each prefix with a fragment. For these two reasons this 
+strategy was not successful. 
+
+It became clear that I would need to use a more comprehensive and recursive 
+method that was able to handle the kind of nested patterns described above. 
+I started into this new strategy by writing a simple depth first search program 
+that returned a boolean if an element could be derived from a start symbol. 
+This helped me to see the recursive relationship between parsing rule lists 
+and rules-- essentially if a non-terminal symbol was encountered when parsing 
+the rule list the function parsing rule lists would need to be called again 
+with the non-terminal symbol as the new start term. This notion of mutual 
+recursion was the salient aspect missing from my first, more piecewise 
+strategy. However, I still had the issue of creating the derivation and 
+incorporating the acceptor function. My first attempt at integrating building 
+the derivation directly into my dfs model led to infinite recursion as my two 
+functions "match_rule" and "match_rule_list" called one in another in 
+succession. Naturally this also made it very difficult to discern where the 
+natural termination point should come. This was clearly problematic. I needed 
+a new strategy to deal with precedence so that the recursion kept the state 
+necessary to unfold the pattern properly.
+
+The third phase of my work on this homework assignment came after going back to
+the homework hint for inspiration. After much trial and error I realized that
+the chaining that was occuring in the example, happened through the function of
+the acceptor itself. Overhauling the acceptor to be another instance of the 
+match_rule function allowed for the recursion to unfold the pattern 
+as expected. In this way the code is able to recursively find a match for an 
+expression while not loosing the original pattern it was in the process of 
+matching. For example, in the case of [N Term; N Binop; N Expr], the code is 
+able to match ["("; .... ; ")"; "+"; "9"] by ensuring the original pattern is 
+not dropped while the first Term is recursively matched. This strategy also 
+makes it such that the acceptor is only called at the very end of the program 
+which is the expected behavior.
+
+However, the remaining interdependence of this final strategy ultimately means 
+that it fails in grammars that contain blind alleys. In this case the program simply
+recurses infinitely. Take for example the following grammar which I have adapted
+from one of my test cases:
+
+let work_grammar = 
+   (Interview, 
+    function
+        | Interview -> 
+            [[N Hired; N Emotion; N Gday]; 
+            [N Emotion; N Interview]];
+        | Hired ->
+            [[N Quit];
+            [N Emotion; N Gday];
+            [N Bday];
+            [N Emotion]]
+        | Quit -> 
+            [[N Hired ];
+            [[N Emotion];
+            [N Gday; T"realize no money"; N Bday];
+            [T"anxiety"; N Emotion; T"anxiety"]]
+        | Fired -> 
+            [[N Emotion];
+            [N Hired]]
+        | Emotion -> 
+            [[T"happy"];
+            [T"sad"];
+            [T"confused"];
+            [T"anxious"];
+            [T"nervous"];
+            [T"relieved"]]
+        | Gday -> 
+            [[T"you had a good day!"]]
+        | Bday -> 
+            [[T"you had a bad day :("]])
+ 
+With this grammar my program would iterate infinitely over the pattern 
+Hired->Quit->Hired->Quit and so on. Since my program relies heavily on the 
+grammar to terminate with each path, these kind of grammars immediately break 
+it. 
+
