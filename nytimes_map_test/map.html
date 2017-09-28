@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <title>D3+ NYTimes Experiment</title>
+</head>
+
+<body>
+  <canvas id="content"></canvas>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.2/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.0/topojson.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script>
+
+
+/* PART ONE: code for d3 animation */
+/* NOTE: the map animation portion of this code is taken largely from Peter Cook. Link to the original animation here: https://bl.ocks.org/animateddata/0949801eba0d51c80f22490db665f8c3 */
+var context = document.getElementById('content').getContext('2d');
+var width = window.innerWidth;
+var height = window.innerHeight;
+var size = d3.min([width, height]);
+var landGeojson;
+
+/* create the SVG canvas */
+var svg = d3.select('#content')
+            .attr('width', width + 'px')
+            .attr('height', height + 'px');
+
+/* Size and shape of the map projection */
+var projection = d3.geoOrthographic()
+  .scale(0.45 * size)
+  .translate([0.5 * width, 0.5 * height]);
+
+/* use d3 to project map into 2d space */
+var geoGenerator = d3.geoPath()
+  .projection(projection)
+  .context(context);
+
+/* draw the map to the screen */
+function drawFeatures(features, fill) {
+  context.beginPath();
+  geoGenerator({type: 'FeatureCollection', features: features});
+  fill ? context.fill() : context.stroke();
+}
+
+/* draw the article locations */
+function drawPoints(features) {
+    var geoMultiPoint = {
+        "type": "MultiPoint",
+        "coordinates": nytimes_data
+    };
+    context.beginPath();
+    geoGenerator(geoMultiPoint);
+    context.fill();
+}
+
+/* animation that draws world as it rotates*/
+function update(t) {
+  context.clearRect(0, 0, width, height);
+
+  projection.rotate([-t / 100 - 40])
+
+  context.lineWidth = .7;
+  context.strokeStyle = '#3971CF';
+
+  drawFeatures(landGeojson.features, false);
+  drawPoints(nytimes_data);
+
+  window.requestAnimationFrame(update);
+}
+
+// get natural earth data --> http://www.naturalearthdata.com/
+d3.json('ne.json', function(err, json) {
+  landGeojson = topojson.feature(json, json.objects.ne_50m_admin_0_countries)  
+  window.requestAnimationFrame(update); 
+})
+
+/* PART 2: Query the Nytimes api to get the most popular articles in the world section over the last 24 hours */
+/* use google geolocation api to translate the names of the locations to coordinates */
+
+var nytimes_data = [];
+
+// query nytimes
+(get_nytimes_data = function() {
+    var url = "https://api.nytimes.com/svc/news/v3/content/all/world/24.json";
+    url += '?' + $.param({
+      'api-key': "7667f1f6367f48228cfb04956fef44a8",
+      'offset': 0
+    });
+
+    $.ajax({
+      url: url,
+      method: 'GET',
+    }).done(function(data) {
+        handle_nyt_results(data);
+    }).fail(function(err) {
+      throw err;
+    });
+})();
+
+// parse the results and pass data to google for translation into lat/lng 
+handle_nyt_results = function(response) {
+    hits = response.results;
+    $.each(hits, function(i, val) {
+        var title = val.title;
+        var location = val.geo_facet;
+        $.each(location, function(i, val) {
+            get_and_store_location_data(val, title);
+        });
+    });
+}
+
+/* query google for latitude and longitude */
+get_and_store_location_data = function(place, title) {
+    var url = "https://maps.googleapis.com/maps/api/geocode/json";
+    url += '?' + $.param({
+    'key': "AIzaSyCpSu84Bocj2g86-TW3azcZ0MuaYqfEHXg",
+    'address': place
+    });
+
+    $.ajax({
+        url: url,
+        method: 'GET',
+    }).done(function(data) {
+        var lng = data.results[0].geometry.location.lng
+        var lat = data.results[0].geometry.location.lat
+        nytimes_data.push([lng, lat]);
+    }).fail(function(err) {
+        throw err;
+    });
+}
+
+</script>
+</body>
+</html>
