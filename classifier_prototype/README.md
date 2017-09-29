@@ -68,7 +68,7 @@ Receiver Operating Characteristic (ROC) Curves: ROC curves aid in the selection 
 
 ![](result_imgs/roc_curve_1.png?raw=true)
 
-![](result_imgs/roc_curve_2.pngraw=true)
+![](result_imgs/roc_curve_2.png?raw=true)
 
 
 
