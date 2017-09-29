@@ -60,6 +60,17 @@ To test trained models I created a Jupyter notebook that evaluates each model ov
 
 Sample metric results from the notebook:
 
-##### Confusion Matrix: A confusion matrix visualizes the question "How many times does image with label x get classified x, as opposed to labels j or k?"
+Confusion Matrix: A confusion matrix visualizes the question "How many times does image with label x get classified x, as opposed to labels j or k?"
+
+![](result_imgs/confusion_matrix_celeb_may_2017.png?raw=true)
+
+Receiver Operating Characteristic (ROC) Curves: ROC curves aid in the selection of a proper threshold for classification by comparing true and false positive rates across thresholds.
+
+![](result_imgs/roc_curve_1.png?raw=true)
+
+![](result_imgs/roc_curve_2.png?raw=true)
+
+
+
 
 
